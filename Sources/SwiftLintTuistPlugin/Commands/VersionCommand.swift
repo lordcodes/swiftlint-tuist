@@ -12,7 +12,7 @@ struct VersionCommand {
     }
 
     private func printVersion() {
-        print(Version.current)
+        print(PluginVersion.current)
     }
 
     private func printHelp() {

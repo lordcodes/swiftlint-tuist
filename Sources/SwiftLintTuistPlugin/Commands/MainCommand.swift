@@ -16,41 +16,41 @@ struct MainCommand {
 
     func run() {
         switch subcommand {
-        case nil, "format":
-            runSwiftFormat(lint: false)
+        case nil, "lint":
+            runSwiftLint(fix: false)
+        case "fix":
+            runSwiftLint(fix: true)
         case "help":
             printHelp()
-        case "lint":
-            runSwiftFormat(lint: true)
         case "version":
             VersionCommand(arguments: arguments).run()
         default:
-            runSwiftFormat(lint: false)
+            runSwiftLint(fix: false)
         }
     }
 
-    private func runSwiftFormat(lint: Bool) {
-        SwiftFormatCommand(arguments: arguments, lint: lint).run()
+    private func runSwiftLint(fix: Bool) {
+        SwiftLintCommand(arguments: arguments, fix: fix).run()
     }
 
     private func printHelp() {
         let help = """
-        USAGE: tuist format [<subcommand>]
+        USAGE: tuist swiftlint [<subcommand>]
 
         DEFAULT SUBCOMMAND
-          Run SwiftFormat in format mode.
+          Run SwiftLint in default lint mode.
 
         SUBCOMMANDS:
-          format            Run SwiftFormat in format mode.
-          lint              Run SwiftFormat in lint mode.
+          lint              Run SwiftLint in default lint mode.
+          fix               Run SwiftLint in fix mode.
           help              Print this help information.
           version           Print SwiftFormat Tuist version.
 
-        See 'tuist format <subcommand> --help' for detailed help.
+        See 'tuist swiftlint <subcommand> --help' for detailed help.
 
         """
         print(help)
     }
 
-    private static let validSubcommands: [String] = ["format", "help", "lint", "version"]
+    private static let validSubcommands: [String] = ["fix", "help", "lint", "version"]
 }

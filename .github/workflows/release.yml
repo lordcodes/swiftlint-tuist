@@ -42,7 +42,7 @@ jobs:
 
     - name: Update version in code
       run: |
-        sed -i -e "s/current = \".*\"/current = \"${{ steps.semvers.outputs.version }}\"/g" Sources/SwiftLintTuistPlugin/Version.swift
+        sed -i -e "s/current = \".*\"/current = \"${{ steps.semvers.outputs.version }}\"/g" Sources/SwiftLintTuistPlugin/PluginVersion.swift
 
     - name: Build changelog
       id: changelog
