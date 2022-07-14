@@ -1,5 +1,5 @@
 <p align="center">
-    <img src="https://img.shields.io/badge/Swift-5.6-orange.svg" />
+    <img src="https://img.shields.io/badge/Swift-5.5-orange.svg" />
     <a href="https://swift.org/package-manager">
         <img src="https://img.shields.io/badge/swiftpm-compatible-brightgreen.svg?style=flat" alt="Swift Package Manager" />
     </a>
