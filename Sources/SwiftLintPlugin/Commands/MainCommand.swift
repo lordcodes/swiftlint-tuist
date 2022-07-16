@@ -1,36 +1,31 @@
 // Copyright © 2022 Andrew Lord.
 
+import SwiftLintPluginKit
+
 struct MainCommand {
-    let subcommand: String?
-    let arguments: [String]
+    let command: CommandArguments
 
     init(arguments: [String]) {
-        if MainCommand.validSubcommands.contains(arguments.first ?? "") {
-            subcommand = arguments.first
-            self.arguments = Array(arguments.dropFirst())
-        } else {
-            subcommand = nil
-            self.arguments = arguments
-        }
+        command = ArgumentProcessor.parse(arguments: arguments)
     }
 
     func run() {
-        switch subcommand {
-        case nil, "lint":
+        switch command.subcommand {
+        case "lint":
             runSwiftLint(fix: false)
         case "fix":
             runSwiftLint(fix: true)
         case "help":
             printHelp()
         case "version":
-            VersionCommand(arguments: arguments).run()
+            VersionCommand(arguments: command.arguments).run()
         default:
             runSwiftLint(fix: false)
         }
     }
 
     private func runSwiftLint(fix: Bool) {
-        SwiftLintCommand(arguments: arguments, fix: fix).run()
+        SwiftLintCommand(command: command, fix: fix).run()
     }
 
     private func printHelp() {
@@ -51,6 +46,4 @@ struct MainCommand {
         """
         print(help)
     }
-
-    private static let validSubcommands: [String] = ["fix", "help", "lint", "version"]
 }

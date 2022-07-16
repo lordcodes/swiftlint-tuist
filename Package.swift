@@ -9,7 +9,7 @@ let package = Package(
         .executable(
             name: "tuist-swiftlint",
             targets: [
-                "SwiftLintTuistPlugin",
+                "SwiftLintPlugin",
             ]
         ),
     ],
@@ -20,7 +20,13 @@ let package = Package(
     ],
     targets: [
         .executableTarget(
-            name: "SwiftLintTuistPlugin",
+            name: "SwiftLintPlugin",
+            dependencies: [
+                "SwiftLintPluginKit",
+            ]
+        ),
+        .target(
+            name: "SwiftLintPluginKit",
             dependencies: [
                 "SwiftLintWrapper",
             ]
@@ -31,6 +37,12 @@ let package = Package(
                 .product(name: "SwiftLintFramework", package: "SwiftLint"),
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
                 .product(name: "SwiftyTextTable", package: "SwiftyTextTable"),
+            ]
+        ),
+        .testTarget(
+            name: "SwiftLintPluginKitTests",
+            dependencies: [
+                "SwiftLintPluginKit",
             ]
         )
     ]
