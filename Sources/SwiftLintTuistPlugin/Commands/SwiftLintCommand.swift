@@ -2,6 +2,7 @@
 
 import Darwin
 import Foundation
+import SwiftLintWrapper
 
 struct SwiftLintCommand {
     let arguments: [String]
@@ -9,13 +10,13 @@ struct SwiftLintCommand {
 
     func run() {
         DispatchQueue.global().async {
-            SwiftLint.mainHandlingDeprecatedCommands(cliArguments())
+            SwiftLintWrapper.run(with: swiftLintArguments())
             exit(EXIT_SUCCESS)
         }
         dispatchMain()
     }
 
-    private func cliArguments() -> [String] {
+    private func swiftLintArguments() -> [String] {
         var outputArguments = arguments.filter { $0 != "--fix" }
         if fix {
             outputArguments = ["--fix"] + outputArguments

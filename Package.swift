@@ -22,10 +22,16 @@ let package = Package(
         .executableTarget(
             name: "SwiftLintTuistPlugin",
             dependencies: [
+                "SwiftLintWrapper",
+            ]
+        ),
+        .target(
+            name: "SwiftLintWrapper",
+            dependencies: [
                 .product(name: "SwiftLintFramework", package: "SwiftLint"),
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
                 .product(name: "SwiftyTextTable", package: "SwiftyTextTable"),
             ]
-        ),
+        )
     ]
 )
