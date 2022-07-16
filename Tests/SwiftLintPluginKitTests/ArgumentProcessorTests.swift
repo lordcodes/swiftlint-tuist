@@ -47,46 +47,65 @@ class ArgumentProcessorTests: XCTestCase {
     }
 
     func test_swiftLintArguments_emptyArguments() {
+        let currentDirectory = FileManager.default.currentDirectoryPath
+
         let lint = ArgumentProcessor.swiftLintArguments(
             fix: false,
             command: CommandArguments(programName: "tuist-swiftlint", subcommand: "lint", arguments: [])
         )
-        XCTAssertEqual(lint, [])
+        XCTAssertEqual(lint, [currentDirectory])
 
         let fix = ArgumentProcessor.swiftLintArguments(
             fix: true,
             command: CommandArguments(programName: "tuist-swiftlint", subcommand: "fix", arguments: [])
         )
-        XCTAssertEqual(fix, ["--fix"])
+        XCTAssertEqual(fix, [currentDirectory, "--fix"])
     }
 
     func test_swiftLintArguments_fixArgumentSpecified() {
+        let currentDirectory = FileManager.default.currentDirectoryPath
+
         let lint = ArgumentProcessor.swiftLintArguments(
             fix: false,
             command: CommandArguments(programName: "tuist-swiftlint", subcommand: "lint", arguments: ["--fix"])
         )
-        XCTAssertEqual(lint, [])
+        XCTAssertEqual(lint, [currentDirectory])
 
         let fix = ArgumentProcessor.swiftLintArguments(
             fix: true,
             command: CommandArguments(programName: "tuist-swiftlint", subcommand: "fix", arguments: ["--fix"])
         )
-        XCTAssertEqual(fix, ["--fix"])
+        XCTAssertEqual(fix, [currentDirectory, "--fix"])
+    }
+
+    func test_swiftFormatArguments_pathSpecified() {
+        let lint = ArgumentProcessor.swiftLintArguments(
+            fix: false,
+            command: CommandArguments(programName: "tuist-swiftlint", subcommand: "lint", arguments: ["project-dir"])
+        )
+        XCTAssertEqual(lint, ["project-dir"])
+
+        let fix = ArgumentProcessor.swiftLintArguments(
+            fix: true,
+            command: CommandArguments(programName: "tuist-swiftlint", subcommand: "fix", arguments: ["project-dir"])
+        )
+        XCTAssertEqual(fix, ["project-dir", "--fix"])
     }
 
     func test_swiftLintArguments_reporterArgument() {
+        let currentDirectory = FileManager.default.currentDirectoryPath
         let arguments = ["--fix", "--reporter", "html"]
 
         let lint = ArgumentProcessor.swiftLintArguments(
             fix: false,
             command: CommandArguments(programName: "tuist-swiftlint", subcommand: "lint", arguments: arguments)
         )
-        XCTAssertEqual(lint, ["--reporter", "html"])
+        XCTAssertEqual(lint, [currentDirectory, "--reporter", "html"])
 
         let fix = ArgumentProcessor.swiftLintArguments(
             fix: true,
             command: CommandArguments(programName: "tuist-swiftlint", subcommand: "fix", arguments: arguments)
         )
-        XCTAssertEqual(fix, ["--fix", "--reporter", "html"])
+        XCTAssertEqual(fix, [currentDirectory, "--fix", "--reporter", "html"])
     }
 }

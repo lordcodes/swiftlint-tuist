@@ -20,8 +20,16 @@ public enum ArgumentProcessor {
     }
 
     static func swiftLintArguments(fix: Bool, command: CommandArguments) -> [String] {
-        let commandArguments = command.arguments.filter { $0 != "--fix" }
+        var commandArguments = command.arguments.filter { $0 != "--fix" }
         var outputArguments = [String]()
+        if commandArguments.isEmpty {
+            outputArguments.append(FileManager.default.currentDirectoryPath)
+        } else if let argument = commandArguments.first, argument.starts(with: "--") || argument.starts(with: "-") {
+            outputArguments.append(FileManager.default.currentDirectoryPath)
+        } else if let argument = commandArguments.first {
+            outputArguments.append(argument)
+            commandArguments = Array(commandArguments.dropFirst())
+        }
         if fix {
             outputArguments.append("--fix")
         }
