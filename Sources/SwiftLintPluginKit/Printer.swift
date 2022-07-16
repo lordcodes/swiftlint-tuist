@@ -33,12 +33,13 @@ public struct ConsolePrinter: Printer {
     /// Print message when not in quiet mode.
     public func printMessage(_ message: @autoclosure () -> String) {
         if !quiet {
-            print(message())
+            printForced(message())
         }
     }
 
     /// Print a message that will always be printed.
     public func printForced(_ message: @autoclosure () -> String) {
-        print(message())
+        fflush(stdout)
+        fputs(message() + "\n", stderr)
     }
 }
