@@ -10,6 +10,9 @@ struct MainCommand {
     }
 
     func run() {
+        let isQuiet = command.arguments.contains { $0 == "--quiet" || $0 == "-q" }
+        SwiftLintPluginKit.shared.printer = ConsolePrinter(quiet: isQuiet)
+
         switch command.subcommand {
         case "lint":
             runSwiftLint(fix: false)
@@ -18,7 +21,7 @@ struct MainCommand {
         case "help":
             printHelp()
         case "version":
-            VersionCommand(arguments: command.arguments).run()
+            VersionCommand(command: command).run()
         default:
             runSwiftLint(fix: false)
         }

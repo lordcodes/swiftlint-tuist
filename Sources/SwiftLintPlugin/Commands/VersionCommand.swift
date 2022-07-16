@@ -1,10 +1,12 @@
 // Copyright © 2022 Andrew Lord.
 
+import SwiftLintPluginKit
+
 struct VersionCommand {
-    let arguments: [String]
+    let command: CommandArguments
 
     func run() {
-        if arguments.contains(where: { $0 == "-h" || $0 == "--help" }) {
+        if command.arguments.contains(where: { $0 == "-h" || $0 == "--help" }) {
             printHelp()
         } else {
             printVersion()
@@ -19,7 +21,7 @@ struct VersionCommand {
         let help = """
         OVERVIEW: Print version
 
-        USAGE: \(programName) version
+        USAGE: \(command.programName) version
 
         OPTIONS:
           -h, --help              Show help information.
