@@ -23,6 +23,7 @@ If this is your first time contributing to SwiftLint Tuist, please have a read t
 * Clone the repository.
 * To build: build in Xcode or run `tuist plugin build`.
 * To test: test in Xcode or run `tuist plugin test`.
+* To format: run `tuist swiftformat`.
 * To run locally, navigate to the project you want to run on and then run `tuist plugin run tuist-swiftlint {ARGUMENTS} --path /path/to/swiftlint-tuist`.
 
 Thanks!
