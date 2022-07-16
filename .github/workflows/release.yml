@@ -84,6 +84,8 @@ jobs:
       if: ${{ github.event.inputs.publish == 'true' }}
       run: |
         tuist plugin archive
+        unzip swiftlint-tuist.tuist-plugin.zip
+        zip -r swiftlint-tuist.tuist-plugin.zip tuist-swiftlint
         
     - name: Create GitHub Release
       if: ${{ github.event.inputs.publish == 'true' }}
