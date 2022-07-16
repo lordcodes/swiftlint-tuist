@@ -44,6 +44,6 @@ let package = Package(
             dependencies: [
                 "SwiftLintPluginKit",
             ]
-        )
+        ),
     ]
 )
