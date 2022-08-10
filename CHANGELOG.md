@@ -2,7 +2,9 @@
 
 ## 0.2.0 - 2022-08-10
 
-- no changes
+### Changed
+
+- Update SwiftLint to 0.48.0.
 
 ## 0.1.0
 
