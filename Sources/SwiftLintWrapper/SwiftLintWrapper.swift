@@ -2,6 +2,6 @@
 
 public enum SwiftLintWrapper {
     public static func run(with arguments: [String]) {
-        SwiftLint.mainHandlingDeprecatedCommands(arguments)
+        SwiftLint.main(arguments)
     }
 }

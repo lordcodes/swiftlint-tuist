@@ -75,6 +75,11 @@ jobs:
       with:
         ref: ${{ needs.prepare-release.outputs.commit_hash }}
 
+    - name: Setup Swift
+      uses: swift-actions/setup-swift@v1
+      with:
+        swift-version: "5.6"
+
     - name: Install Tuist
       if: ${{ github.event.inputs.publish == 'true' }}
       run: |
