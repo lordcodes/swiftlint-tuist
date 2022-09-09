@@ -67,7 +67,7 @@ jobs:
         commit_message: "[Release] ${{ steps.semvers.outputs.version }}"
 
   release:
-    runs-on: macos-latest
+    runs-on: macos-12
     needs: prepare-release
     steps:
     - uses: actions/checkout@v3
