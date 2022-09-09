@@ -15,12 +15,12 @@ public struct SwiftLintService {
         self.fix = fix
     }
 
-    public func run() {
+    public func run() async {
         let swiftLintArguments = ArgumentProcessor.swiftLintArguments(
             fix: fix,
             command: command
         )
         printer.printMessage("Running SwiftLint with arguments: \(swiftLintArguments)")
-        SwiftLintWrapper.run(with: swiftLintArguments)
+        await SwiftLintWrapper.run(with: swiftLintArguments)
     }
 }

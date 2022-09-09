@@ -8,7 +8,7 @@ on:
 
 jobs:
   test:
-    runs-on: macos-latest
+    runs-on: macos-12
     steps:
     - uses: actions/checkout@v3
 
@@ -19,6 +19,11 @@ jobs:
         key: ${{ runner.os }}-spm-v1-${{ hashFiles('**/Package.resolved') }}
         restore-keys: |
           ${{ runner.os }}-spm-v1-
+
+    - name: Setup Swift
+      uses: swift-actions/setup-swift@v1
+      with:
+        swift-version: "5.6"
 
     - name: Build
       run: swift build -v
@@ -37,9 +42,14 @@ jobs:
         path: .build/reports
 
   lint:
-    runs-on: macos-latest
+    runs-on: macos-12
     steps:
     - uses: actions/checkout@v3
+
+    - name: Setup Swift
+      uses: swift-actions/setup-swift@v1
+      with:
+        swift-version: "5.6"
 
     - name: Install Tuist
       run: |

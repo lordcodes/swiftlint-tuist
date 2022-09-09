@@ -67,13 +67,18 @@ jobs:
         commit_message: "[Release] ${{ steps.semvers.outputs.version }}"
 
   release:
-    runs-on: macos-latest
+    runs-on: macos-12
     needs: prepare-release
     steps:
     - uses: actions/checkout@v3
       if: ${{ github.event.inputs.publish == 'true' }}
       with:
         ref: ${{ needs.prepare-release.outputs.commit_hash }}
+
+    - name: Setup Swift
+      uses: swift-actions/setup-swift@v1
+      with:
+        swift-version: "5.6"
 
     - name: Install Tuist
       if: ${{ github.event.inputs.publish == 'true' }}

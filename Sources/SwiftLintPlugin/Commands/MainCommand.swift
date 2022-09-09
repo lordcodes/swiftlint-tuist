@@ -9,26 +9,26 @@ struct MainCommand {
         command = ArgumentProcessor.parse(arguments: arguments)
     }
 
-    func run() {
+    func run() async {
         let isQuiet = command.arguments.contains { $0 == "--quiet" || $0 == "-q" }
         SwiftLintPluginKit.shared.printer = ConsolePrinter(quiet: isQuiet)
 
         switch command.subcommand {
         case "lint":
-            runSwiftLint(fix: false)
+            await runSwiftLint(fix: false)
         case "fix":
-            runSwiftLint(fix: true)
+            await runSwiftLint(fix: true)
         case "help":
             printHelp()
         case "version":
             VersionCommand(command: command).run()
         default:
-            runSwiftLint(fix: false)
+            await runSwiftLint(fix: false)
         }
     }
 
-    private func runSwiftLint(fix: Bool) {
-        SwiftLintCommand(command: command, fix: fix).run()
+    private func runSwiftLint(fix: Bool) async {
+        await SwiftLintCommand(command: command, fix: fix).run()
     }
 
     private func printHelp() {

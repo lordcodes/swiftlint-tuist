@@ -1,6 +1,5 @@
 import Dispatch
 import Foundation
-import SourceKittenFramework
 import SwiftLintFramework
 
 enum LintOrAnalyzeMode {
@@ -26,29 +25,41 @@ enum LintOrAnalyzeMode {
 }
 
 struct LintOrAnalyzeCommand {
-    static func run(_ options: LintOrAnalyzeOptions) -> Result<(), SwiftLintError> {
+    static func run(_ options: LintOrAnalyzeOptions) async throws {
         if options.inProcessSourcekit {
-            SourceKittenConfiguration.preferInProcessSourceKit = true
+            queuedPrintError(
+                """
+                warning: The --in-process-sourcekit option is deprecated. \
+                SwiftLint now always uses an in-process SourceKit.
+                """
+            )
         }
-        return Signposts.record(name: "LintOrAnalyzeCommand.run") {
-            options.autocorrect ? autocorrect(options) : lintOrAnalyze(options)
+        try await Signposts.record(name: "LintOrAnalyzeCommand.run") {
+            try await options.autocorrect ? autocorrect(options) : lintOrAnalyze(options)
         }
+
+#if os(Linux)
+        // Workaround for https://github.com/realm/SwiftLint/issues/4117
+        exit(0)
+#endif
     }
 
-    private static func lintOrAnalyze(_ options: LintOrAnalyzeOptions) -> Result<(), SwiftLintError> {
+    private static func lintOrAnalyze(_ options: LintOrAnalyzeOptions) async throws {
         let builder = LintOrAnalyzeResultBuilder(options)
-        return collectViolations(builder: builder)
-            .flatMap { postProcessViolations(files: $0, builder: builder) }
+        let files = try await collectViolations(builder: builder)
+        try Signposts.record(name: "LintOrAnalyzeCommand.PostProcessViolations") {
+            try postProcessViolations(files: files, builder: builder)
+        }
     }
 
-    private static func collectViolations(builder: LintOrAnalyzeResultBuilder)
-        -> Result<[SwiftLintFile], SwiftLintError> {
+    private static func collectViolations(builder: LintOrAnalyzeResultBuilder) async throws -> [SwiftLintFile] {
         let options = builder.options
         let visitorMutationQueue = DispatchQueue(label: "io.realm.swiftlint.lintVisitorMutation")
-        return builder.configuration.visitLintableFiles(options: options, cache: builder.cache,
-                                                        storage: builder.storage) { linter in
+        return try await builder.configuration.visitLintableFiles(options: options, cache: builder.cache,
+                                                                  storage: builder.storage) { linter in
             let currentViolations: [StyleViolation]
             if options.benchmark {
+                CustomRuleTimer.shared.activate()
                 let start = Date()
                 let (violationsBeforeLeniency, currentRuleTimes) = linter
                     .styleViolationsAndRuleTimes(using: builder.storage)
@@ -66,36 +77,35 @@ struct LintOrAnalyzeCommand {
                 }
             }
             linter.file.invalidateCache()
-            builder.reporter.report(violations: currentViolations, realtimeCondition: true)
+            builder.report(violations: currentViolations, realtimeCondition: true)
         }
     }
 
-    private static func postProcessViolations(files: [SwiftLintFile], builder: LintOrAnalyzeResultBuilder)
-        -> Result<(), SwiftLintError> {
-        return Signposts.record(name: "LintOrAnalyzeCommand.PostProcessViolations") {
-            let options = builder.options
-            let configuration = builder.configuration
-            if isWarningThresholdBroken(configuration: configuration, violations: builder.violations)
-                && !options.lenient {
-                builder.violations.append(
-                    createThresholdViolation(threshold: configuration.warningThreshold!)
-                )
-                builder.reporter.report(violations: [builder.violations.last!], realtimeCondition: true)
-            }
-            builder.reporter.report(violations: builder.violations, realtimeCondition: false)
-            let numberOfSeriousViolations = builder.violations.filter({ $0.severity == .error }).count
-            if !options.quiet {
-                printStatus(violations: builder.violations, files: files, serious: numberOfSeriousViolations,
-                            verb: options.verb)
-            }
-            if options.benchmark {
-                builder.fileBenchmark.save()
-                builder.ruleBenchmark.save()
-            }
-            try? builder.cache?.save()
-            guard numberOfSeriousViolations == 0 else { exit(2) }
-            return .success(())
+    private static func postProcessViolations(files: [SwiftLintFile], builder: LintOrAnalyzeResultBuilder) throws {
+        let options = builder.options
+        let configuration = builder.configuration
+        if isWarningThresholdBroken(configuration: configuration, violations: builder.violations)
+            && !options.lenient {
+            builder.violations.append(
+                createThresholdViolation(threshold: configuration.warningThreshold!)
+            )
+            builder.report(violations: [builder.violations.last!], realtimeCondition: true)
         }
+        builder.report(violations: builder.violations, realtimeCondition: false)
+        let numberOfSeriousViolations = builder.violations.filter({ $0.severity == .error }).count
+        if !options.quiet {
+            printStatus(violations: builder.violations, files: files, serious: numberOfSeriousViolations,
+                        verb: options.verb)
+        }
+        if options.benchmark {
+            builder.fileBenchmark.save()
+            for (id, time) in CustomRuleTimer.shared.dump() {
+                builder.ruleBenchmark.record(id: id, time: time)
+            }
+            builder.ruleBenchmark.save()
+        }
+        try builder.cache?.save()
+        guard numberOfSeriousViolations == 0 else { exit(2) }
     }
 
     private static func printStatus(violations: [StyleViolation], files: [SwiftLintFile], serious: Int, verb: String) {
@@ -157,32 +167,45 @@ struct LintOrAnalyzeCommand {
         }
     }
 
-    private static func autocorrect(_ options: LintOrAnalyzeOptions) -> Result<(), SwiftLintError> {
+    private static func autocorrect(_ options: LintOrAnalyzeOptions) async throws {
         let storage = RuleStorage()
         let configuration = Configuration(options: options)
-        return configuration.visitLintableFiles(options: options, cache: nil, storage: storage) { linter in
-            if options.format {
-                switch configuration.indentation {
-                case .tabs:
-                    linter.format(useTabs: true, indentWidth: 4)
-                case .spaces(let count):
-                    linter.format(useTabs: false, indentWidth: count)
+        let correctionsBuilder = CorrectionsBuilder()
+        let files = try await configuration
+            .visitLintableFiles(options: options, cache: nil, storage: storage) { linter in
+                if options.format {
+                    switch configuration.indentation {
+                    case .tabs:
+                        linter.format(useTabs: true, indentWidth: 4)
+                    case .spaces(let count):
+                        linter.format(useTabs: false, indentWidth: count)
+                    }
+                }
+
+                let corrections = linter.correct(using: storage)
+                if !corrections.isEmpty && !options.quiet && !options.useSTDIN {
+                    if options.progress {
+                        await correctionsBuilder.append(corrections)
+                    } else {
+                        let correctionLogs = corrections.map(\.consoleDescription)
+                        queuedPrint(correctionLogs.joined(separator: "\n"))
+                    }
                 }
             }
 
-            let corrections = linter.correct(using: storage)
-            if !corrections.isEmpty && !options.quiet {
-                let correctionLogs = corrections.map({ $0.consoleDescription })
-                queuedPrint(correctionLogs.joined(separator: "\n"))
-            }
-        }.flatMap { files in
-            if !options.quiet {
-                let pluralSuffix = { (collection: [Any]) -> String in
-                    return collection.count != 1 ? "s" : ""
+        if !options.quiet {
+            if options.progress {
+                let corrections = await correctionsBuilder.corrections
+                if !corrections.isEmpty {
+                    let correctionLogs = corrections.map(\.consoleDescription)
+                    options.writeToOutput(correctionLogs.joined(separator: "\n"))
                 }
-                queuedPrintError("Done inspecting \(files.count) file\(pluralSuffix(files)) for auto-correction!")
             }
-            return .success(())
+
+            let pluralSuffix = { (collection: [Any]) -> String in
+                return collection.count != 1 ? "s" : ""
+            }
+            queuedPrintError("Done correcting \(files.count) file\(pluralSuffix(files))!")
         }
     }
 }
@@ -200,6 +223,8 @@ struct LintOrAnalyzeOptions {
     let benchmark: Bool
     let reporter: String?
     let quiet: Bool
+    let output: String?
+    let progress: Bool
     let cachePath: String?
     let ignoreCache: Bool
     let enableAllRules: Bool
@@ -233,8 +258,52 @@ private class LintOrAnalyzeResultBuilder {
             Configuration(options: options)
         }
         configuration = config
-        reporter = reporterFrom(optionsReporter: options.reporter, configuration: config)
+        reporter = reporterFrom(identifier: options.reporter ?? config.reporter)
         cache = options.ignoreCache ? nil : LinterCache(configuration: config)
         self.options = options
+
+        if let outFile = options.output {
+            do {
+                try Data().write(to: URL(fileURLWithPath: outFile))
+            } catch {
+                queuedPrintError("Could not write to file at path \(outFile)")
+            }
+        }
+    }
+
+    func report(violations: [StyleViolation], realtimeCondition: Bool) {
+        if (reporter.isRealtime && !options.progress) == realtimeCondition {
+            let report = reporter.generateReport(violations)
+            if !report.isEmpty {
+                options.writeToOutput(report)
+            }
+        }
+    }
+}
+
+private extension LintOrAnalyzeOptions {
+    func writeToOutput(_ string: String) {
+        guard let outFile = output else {
+            queuedPrint(string)
+            return
+        }
+
+        do {
+            let outFileURL = URL(fileURLWithPath: outFile)
+            let fileUpdater = try FileHandle(forUpdating: outFileURL)
+            fileUpdater.seekToEndOfFile()
+            fileUpdater.write(Data((string + "\n").utf8))
+            fileUpdater.closeFile()
+        } catch {
+            queuedPrintError("Could not write to file at path \(outFile)")
+        }
+    }
+}
+
+private actor CorrectionsBuilder {
+    private(set) var corrections: [Correction] = []
+
+    func append(_ corrections: [Correction]) {
+        self.corrections.append(contentsOf: corrections)
     }
 }
