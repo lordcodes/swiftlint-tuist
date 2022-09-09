@@ -8,11 +8,7 @@ struct SwiftLintCommand {
     let command: CommandArguments
     let fix: Bool
 
-    func run() {
-        DispatchQueue.global().async {
-            SwiftLintService(command: command, fix: fix).run()
-            exit(EXIT_SUCCESS)
-        }
-        dispatchMain()
+    func run() async {
+        await SwiftLintService(command: command, fix: fix).run()
     }
 }
